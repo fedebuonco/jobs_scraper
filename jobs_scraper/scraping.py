@@ -3,7 +3,10 @@ import pandas as pd
 from time import sleep
 import random
 from bs4 import BeautifulSoup
+from selenium import webdriver
+import requests
 from tqdm.auto import tqdm
+
 
 class JobsScraper:
     """JobsScraper is a simple job postings scraper for Indeed."""
@@ -34,11 +37,14 @@ class JobsScraper:
             If set to True, it shows the job url column not truncated in the DataFrame.
         """
         if country.upper() == "US":
-            self._url = 'https://indeed.com/jobs?q={}&l={}'.format(position, location)
+            self._url = 'https://indeed.com/jobs?q={}&l={}'.format(
+                position, location)
         else:
-            self._url = 'https://{}.indeed.com/jobs?q={}&l={}'.format(country, position, location)
+            self._url = 'https://{}.indeed.com/jobs?q={}&l={}'.format(
+                country, position, location)
         self._country = country
-        self._headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36'}
+        self._headers = {
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36'}
         self._pages = pages
         self._max_delay = max_delay
         self._jobs = []
@@ -48,16 +54,11 @@ class JobsScraper:
         else:
             pd.reset_option('display.max_colwidth')
 
-
     def _extract_page(self, page):
-
-        with requests.Session() as request:
-            r = request.get(url="{}&start={}".format(self._url, page), headers=self._headers)
-
-        soup = BeautifulSoup(r.content, 'html.parser')
-
+        driver = webdriver.Chrome()
+        r = driver.get(url="{}&start={}".format(self._url, page))
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
         return soup
-
 
     def _transform_page(self, soup):
 
@@ -98,7 +99,8 @@ class JobsScraper:
                 if self._country.upper() == "US":
                     job_url = 'https://indeed.com{}'.format(href)
                 else:
-                    job_url = 'https://{}.indeed.com{}'.format(self._country, href)
+                    job_url = 'https://{}.indeed.com{}'.format(
+                        self._country, href)
             except:
                 job_url = None
             try:
@@ -123,7 +125,6 @@ class JobsScraper:
             if self._max_delay > 0:
                 sleep(random.randint(0, self._max_delay))
 
-
     def scrape(self) -> pd.DataFrame:
         """
         Perform the scraping for the parameters provided in the class constructor.
@@ -135,7 +136,7 @@ class JobsScraper:
             Return a scraped Dataframe.
         """
 
-        for i in tqdm(range(0, self._pages * 10, 10), desc = "Scraping in progress...", total = self._pages):
+        for i in tqdm(range(0, self._pages * 10, 10), desc="Scraping in progress...", total=self._pages):
 
             page = self._extract_page(i)
             self._transform_page(page)
