@@ -54,8 +54,7 @@ class JobsScraper:
         else:
             pd.reset_option('display.max_colwidth')
 
-    def _extract_page(self, page):
-        driver = webdriver.Chrome()
+    def _extract_page(self, page, driver):
         r = driver.get(url="{}&start={}".format(self._url, page))
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         return soup
@@ -125,7 +124,7 @@ class JobsScraper:
             if self._max_delay > 0:
                 sleep(random.randint(0, self._max_delay))
 
-    def scrape(self) -> pd.DataFrame:
+    def scrape(self, driver=None) -> pd.DataFrame:
         """
         Perform the scraping for the parameters provided in the class constructor.
         If duplicates are found, they get dropped.
@@ -135,10 +134,11 @@ class JobsScraper:
         df: pd.DataFrame
             Return a scraped Dataframe.
         """
-
+        if driver is None:
+            driver = webdriver.Chrome()
         for i in tqdm(range(0, self._pages * 10, 10), desc="Scraping in progress...", total=self._pages):
 
-            page = self._extract_page(i)
+            page = self._extract_page(i, driver)
             self._transform_page(page)
 
         df = pd.DataFrame(self._jobs)
